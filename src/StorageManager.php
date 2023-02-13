@@ -352,7 +352,7 @@ class StorageManager
 	 */
     protected function error($message)
     {
-        return response()->json(['state' => trans("ueditor::upload.{$message}")]);
+        return response()->json(['state' => trans("ueditor-plus::upload.{$message}")]);
     }
 	
 	/**

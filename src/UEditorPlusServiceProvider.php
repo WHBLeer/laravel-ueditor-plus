@@ -27,20 +27,20 @@ class UEditorPlusServiceProvider extends ServiceProvider
      */
     public function boot(Router $router)
     {
-        $this->loadViewsFrom(__DIR__.'/views', 'ueditor');
-        $this->loadTranslationsFrom(__DIR__.'/translations', 'ueditor');
+        $this->loadViewsFrom(__DIR__.'/views', 'ueditor-plus');
+        $this->loadTranslationsFrom(__DIR__.'/translations', 'ueditor-plus');
 
         $this->publishes([
             __DIR__.'/config/ueditor-plus.php' => config_path('ueditor-plus.php'),
         ], 'config');
 
         $this->publishes([
-            __DIR__.'/assets/ueditor' => public_path('vendor/ueditor'),
+            __DIR__.'/assets/ueditor-plus' => public_path('vendor/ueditor-plus'),
         ], 'assets');
 
         $this->publishes([
-            __DIR__.'/views' => base_path('resources/views/vendor/ueditor'),
-            __DIR__.'/translations' => base_path('resources/lang/vendor/ueditor'),
+            __DIR__.'/views' => base_path('resources/views/vendor/ueditor-plus'),
+            __DIR__.'/translations' => base_path('resources/lang/vendor/ueditor-plus'),
         ], 'resources');
 
         $this->registerRoute($router);
@@ -52,8 +52,8 @@ class UEditorPlusServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(__DIR__.'/config/ueditor-plus.php', 'ueditor');
-        $this->app->singleton('ueditor.storage', function ($app) {
-            return new StorageManager(Storage::disk($app['config']->get('ueditor.disk', 'public')));
+        $this->app->singleton('ueditor-plus.storage', function ($app) {
+            return new StorageManager(Storage::disk($app['config']->get('ueditor-plus.disk', 'public')));
         });
     }
 

@@ -22,7 +22,7 @@ class UEditorPlusController extends Controller
     public function serve(Request $request)
     {
         $upload = config('ueditor-plus.upload');
-        $storage = app('ueditor.storage');
+        $storage = app('ueditor-plus.storage');
 
         switch ($request->get('action')) {
             case 'config':

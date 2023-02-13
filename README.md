@@ -48,13 +48,13 @@ UEditor integration for Laravel 5.
 # 说明
 
 1. laravel5+ 请不要忘记 `php artisan storage:link`
-2. 在 `config/ueditor.php` 配置 `disk` 为 `'public'` 情况下，上传路径在：`public/uploads/` 下，确认该目录存在并可写。
-3. 如果要修改上传路径，请在 `config/ueditor.php` 里各种类型的上传路径，但是都在 public 下。
+2. 在 `config/ueditor-plus.php` 配置 `disk` 为 `'public'` 情况下，上传路径在：`public/uploads/` 下，确认该目录存在并可写。
+3. 如果要修改上传路径，请在 `config/ueditor-plus.php` 里各种类型的上传路径，但是都在 public 下。
 4. 请在 `.env` 中正确配置 `APP_URL` 为你的当前域名，否则可能上传成功了，但是无法正确显示。
 
 ## S3支持
 
-1. 配置 `config/ueditor.php` 的 `disk` 为 `s3`:
+1. 配置 `config/ueditor-plus.php` 的 `disk` 为 `s3`:
 
 ```php
 'disk' => 's3'

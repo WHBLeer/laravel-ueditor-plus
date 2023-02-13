@@ -22,14 +22,14 @@
   if (window.UEDITOR_HOME_URL) {
     URL = window.UEDITOR_HOME_URL;
   } else if (window.__msCDN) {
-    URL = window.__msCDN + 'asset/vendor/ueditor/';
+    URL = window.__msCDN + 'asset/vendor/ueditor-plus/';
   } else if (window.__msRoot) {
-    URL = window.__msRoot + 'asset/vendor/ueditor/';
+    URL = window.__msRoot + 'asset/vendor/ueditor-plus/';
   } else {
     URL = getUEBasePath();
   }
   if (window.__msRoot) {
-    CORS_URL = window.__msRoot + 'asset/vendor/ueditor/';
+    CORS_URL = window.__msRoot + 'asset/vendor/ueditor-plus/';
   } else {
     CORS_URL = getUEBasePath();
   }
