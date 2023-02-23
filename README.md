@@ -5,7 +5,7 @@ UEditor integration for Laravel 5.
 ## 安装
 
     ```shell
-    $ composer require "sanlilin/laravel-ueditor-plus:~1.0"
+    $ composer require "sanlilin/laravel-ueditor-plus"
     ```
 
 ## 配置
