@@ -23,29 +23,31 @@ class UEditorPlusController extends Controller
 {
     public function serve(Request $request)
     {
-        $upload = config('ueditor-plus.upload');
-        $storage = app('ueditor-plus.storage');
-        switch ($request->get('action')) {
-            case 'config':
-                return config('ueditor-plus.upload');
-
-            // lists
-            case $upload['imageManagerActionName']:
-                return $storage->listFiles(
-                    $upload['imageManagerListPath'],
-                    $request->get('start'),
-                    $request->get('size'),
-                    $upload['imageManagerAllowFiles']);
-            case $upload['fileManagerActionName']:
-                return $storage->listFiles(
-                    $upload['fileManagerListPath'],
-                    $request->get('start'),
-                    $request->get('size'),
-                    $upload['fileManagerAllowFiles']);
-            case $upload['catcherActionName']:
-                return $storage->fetch($request);
-            default:
-                return $storage->upload($request);
-        }
+	    $upload = config('ueditor-plus.upload');
+	    $storage = app('ueditor-plus.storage');
+	    switch ($request->get('action')) {
+		    case 'config':
+			    return config('ueditor-plus.upload');
+		
+		    // lists
+		    case $upload['imageManagerActionName']:
+			    $listPath = ($request->user) ? str_replace('/{user}', '/' . $request->get('user'), $upload['imageManagerListPath']) : $upload['imageManagerListPath'];
+			    return $storage->listFiles(
+				    $listPath,
+				    $request->get('start'),
+				    $request->get('size'),
+				    $upload['imageManagerAllowFiles']);
+		    case $upload['fileManagerActionName']:
+			    $listPath = ($request->user) ? str_replace('/{user}', '/' . $request->get('user'), $upload['fileManagerListPath']) : $upload['fileManagerListPath'];
+			    return $storage->listFiles(
+				    $listPath,
+				    $request->get('start'),
+				    $request->get('size'),
+				    $upload['fileManagerAllowFiles']);
+		    case $upload['catcherActionName']:
+			    return $storage->fetch($request);
+		    default:
+			    return $storage->upload($request);
+	    }
     }
 }
