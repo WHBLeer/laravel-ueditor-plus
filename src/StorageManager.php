@@ -15,7 +15,6 @@ use SplFileInfo;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -29,22 +28,22 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  */
 class StorageManager
 {
-    use UrlResolverTrait;
-
-    /**
-     * @var Filesystem
-     */
-    protected $disk;
-
-    /**
-     * Constructor.
-     *
-     * @param Filesystem $disk
-     */
-    public function __construct(Filesystem $disk)
-    {
-        $this->disk = $disk;
-    }
+	use UrlResolverTrait;
+	
+	/**
+	 * @var Filesystem
+	 */
+	protected $disk;
+	
+	/**
+	 * Constructor.
+	 *
+	 * @param Filesystem $disk
+	 */
+	public function __construct(Filesystem $disk)
+	{
+		$this->disk = $disk;
+	}
 	
 	/**
 	 * Upload a file.
@@ -54,44 +53,47 @@ class StorageManager
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:08
 	 */
-    public function upload(Request $request)
-    {
-        $config = $this->getUploadConfig($request->get('action'));
-
-        if (!$request->hasFile($config['field_name'])) {
-            return $this->error('UPLOAD_ERR_NO_FILE');
-        }
-
-        $file = $request->file($config['field_name']);
-
-        if ($error = $this->fileHasError($file, $config)) {
-            return $this->error($error);
-        }
-
-        $filename = $this->getFilename($file, $config);
-
-        if ($this->eventSupport()) {
-            $modifiedFilename = event(new Uploading($file, $filename, $config), [], true);
-            $filename = !is_null($modifiedFilename) ? $modifiedFilename : $filename;
-        }
-
-        $this->store($file, $filename);
-
-        $response = [
-            'state' => 'SUCCESS',
-            'url' => $this->getUrl($filename),
-            'title' => $filename,
-            'original' => $file->getClientOriginalName(),
-            'type' => $file->getExtension(),
-            'size' => $file->getSize(),
-        ];
-
-        if ($this->eventSupport()) {
-            event(new Uploaded($file, $response));
-        }
-
-        return response()->json($response);
-    }
+	public function upload(Request $request)
+	{
+		$config = $this->getUploadConfig($request->get('action'));
+		
+		if (!$request->hasFile($config['field_name'])) {
+			return $this->error('UPLOAD_ERR_NO_FILE');
+		}
+		
+		$file = $request->file($config['field_name']);
+		
+		if ($error = $this->fileHasError($file, $config)) {
+			return $this->error($error);
+		}
+		
+		if ($request->user) {
+			$filename = $this->getFilename($file, $config, $request->get('user'));
+		} else {
+			$filename = $this->getFilename($file, $config);
+		}
+		if ($this->eventSupport()) {
+			$modifiedFilename = event(new Uploading($file, $filename, $config), [], true);
+			$filename = !is_null($modifiedFilename) ? $modifiedFilename : $filename;
+		}
+		
+		$this->store($file, $filename);
+		
+		$response = [
+			'state' => 'SUCCESS',
+			'url' => $this->getUrl($filename),
+			'title' => $filename,
+			'original' => $file->getClientOriginalName(),
+			'type' => $file->getExtension(),
+			'size' => $file->getSize(),
+		];
+		
+		if ($this->eventSupport()) {
+			event(new Uploaded($file, $response));
+		}
+		
+		return response()->json($response);
+	}
 	
 	/**
 	 * Fetch a file.
@@ -101,96 +103,102 @@ class StorageManager
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:07
 	 */
-    public function fetch(Request $request)
-    {
-        $config = $this->getUploadConfig($request->get('action'));
-        $urls = $request->get($config['field_name']);
-        if (count($urls) === 0) {
-            return $this->error('UPLOAD_ERR_NO_FILE');
-        }
-        $urls = array_unique($urls);
-
-        $list = array();
-        foreach ($urls as $key => $url) {
-            $img = $this->download($url, $config);
-            $item = [];
-            if ($img['state'] === 'SUCCESS') {
-                $file = $img['file'];
-                $filename = $img['filename'];
-                $this->storeContent($file, $filename);
-                if ($this->eventSupport()) {
-                    unset($img['file']);
-                    event(new Catched($img));
-                }
-            }
-            unset($img['file']);
-            $list[] = $img;
-        }
-
-        $response = [
-            'state'=> count($list) ? 'SUCCESS':'ERROR',
-            'list'=> $list
-        ];
-
-        return response()->json($response);
-    }
+	public function fetch(Request $request)
+	{
+		$config = $this->getUploadConfig($request->get('action'));
+		$urls = $request->get($config['field_name']);
+		if (count($urls) === 0) {
+			return $this->error('UPLOAD_ERR_NO_FILE');
+		}
+		$urls = array_unique($urls);
+		
+		$list = array();
+		foreach ($urls as $key => $url) {
+			if ($request->user) {
+				$img = $this->download($url, $config, $request->get('user'));
+			} else {
+				$img = $this->download($url, $config);
+			}
+			
+			$item = [];
+			if ($img['state'] === 'SUCCESS') {
+				$file = $img['file'];
+				$filename = $img['filename'];
+				$this->storeContent($file, $filename);
+				if ($this->eventSupport()) {
+					unset($img['file']);
+					event(new Catched($img));
+				}
+			}
+			unset($img['file']);
+			$list[] = $img;
+		}
+		
+		$response = [
+			'state'=> count($list) ? 'SUCCESS':'ERROR',
+			'list'=> $list
+		];
+		
+		return response()->json($response);
+	}
 	
 	/**
 	 * Download a file.
 	 * @param $url
 	 * @param $config
+	 * @param $user
 	 * @return array|JsonResponse
 	 *
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:07
 	 */
-    private function download($url, $config)
-    {
-        if (strpos($url, 'http') !== 0) {
-            return $this->error('ERROR_HTTP_LINK');
-        }
-        $pathRes = parse_url($url);
-        $img = new SplFileInfo($pathRes['path']);
-        $original = $img->getFilename();
-        $ext = $img->getExtension();
-        $title = md5($url) . '.' . $ext;
-        $filename = $this->formatPath($config['path_format'], $title);
-        $info = [
-            'state' => 'SUCCESS',
-            'url' => $this->getUrl($filename),
-            'title' => $title,
-            'original' => $original,
-            'source' => $url,
-            'size' => 0,
-            'file' => '',
-            'filename' => $filename,
-        ];
-
-        $context = stream_context_create(
-            array('http' => array(
-                'follow_location' => false, // don't follow redirects
-            ))
-        );
-        $file = fopen($url, 'r', false, $context);
-        if ($file === false) {
-            $info['state'] = 'ERROR';
-            return $info;
-        }
-        $content = stream_get_contents($file);
-        fclose($file);
-
-        $info['file'] = $content;
-        $info['siez'] = strlen($content);
-        return $info;
-    }
-
-    /**
-     * @return bool
-     */
-    public function eventSupport()
-    {
-        return trait_exists('Illuminate\Foundation\Events\Dispatchable');
-    }
+	private function download($url, $config, $user=null)
+	{
+		if (strpos($url, 'http') !== 0) {
+			return $this->error('ERROR_HTTP_LINK');
+		}
+		$pathRes = parse_url($url);
+		$img = new SplFileInfo($pathRes['path']);
+		$original = $img->getFilename();
+		$ext = $img->getExtension();
+		$title = md5($url) . '.' . $ext;
+		$filename = $this->formatPath($config['path_format'], $title, $user);
+		$info = [
+			'state' => 'SUCCESS',
+			'url' => $this->getUrl($filename),
+			'title' => $title,
+			'original' => $original,
+			'source' => $url,
+			'size' => 0,
+			'file' => '',
+			'filename' => $filename,
+		];
+		
+		$context = stream_context_create(
+			array('http' => array(
+				'follow_location' => false, // don't follow redirects
+			))
+		);
+		$file = fopen($url, 'r', false, $context);
+		if ($file === false) {
+			$info['state'] = 'ERROR';
+			return $info;
+		}
+		$content = stream_get_contents($file);
+		fclose($file);
+		
+		$info['file'] = $content;
+		$info['siez'] = strlen($content);
+		return $info;
+	}
+	
+	/**
+	 * @return bool
+	 */
+	public function eventSupport()
+	{
+		return trait_exists('Illuminate\Foundation\Events\Dispatchable');
+	}
 	
 	/**
 	 * List all files of dir.
@@ -203,18 +211,18 @@ class StorageManager
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:08
 	 */
-    public function listFiles($path, $start, $size = 20, array $allowFiles = [])
-    {
-        $allFiles = $this->disk->listContents($path, true);
-        $files = $this->paginateFiles($allFiles, $start, $size);
-
-        return [
-            'state' => empty($files) ? 'EMPTY' : 'SUCCESS',
-            'list' => $files,
-            'start' => $start,
-            'total' => count($allFiles),
-        ];
-    }
+	public function listFiles($path, $start, $size = 20, array $allowFiles = [])
+	{
+		$allFiles = $this->disk->listContents($path, true);
+		$files = $this->paginateFiles($allFiles, $start, $size);
+		
+		return [
+			'state' => empty($files) ? 'EMPTY' : 'SUCCESS',
+			'list' => $files,
+			'start' => $start,
+			'total' => count($allFiles),
+		];
+	}
 	
 	/**
 	 * Split results.
@@ -226,15 +234,15 @@ class StorageManager
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:08
 	 */
-    protected function paginateFiles(array $files, $start = 0, $size = 50)
-    {
-        return collect($files)->where('type', 'file')->splice($start)->take($size)->map(function ($file) {
-            return [
-                'url' => $this->getUrl($file['path']),
-                'mtime' => $file['timestamp'],
-            ];
-        })->all();
-    }
+	protected function paginateFiles(array $files, $start = 0, $size = 50)
+	{
+		return collect($files)->where('type', 'file')->splice($start)->take($size)->map(function ($file) {
+			return [
+				'url' => $this->getUrl($file['path']),
+				'mtime' => $file['timestamp'],
+			];
+		})->all();
+	}
 	
 	/**
 	 * Store file.
@@ -245,10 +253,10 @@ class StorageManager
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:08
 	 */
-    protected function store(UploadedFile $file, $filename)
-    {
-        return $this->disk->put($filename, fopen($file->getRealPath(), 'r+'));
-    }
+	protected function store(UploadedFile $file, $filename)
+	{
+		return $this->disk->put($filename, fopen($file->getRealPath(), 'r+'));
+	}
 	
 	/**
 	 * Store file from content.
@@ -259,10 +267,10 @@ class StorageManager
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:09
 	 */
-    protected function storeContent($content, $filename)
-    {
-        return $this->disk->put($filename, $content);
-    }
+	protected function storeContent($content, $filename)
+	{
+		return $this->disk->put($filename, $content);
+	}
 	
 	/**
 	 * Validate the input file.
@@ -273,39 +281,40 @@ class StorageManager
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:09
 	 */
-    protected function fileHasError(UploadedFile $file, array $config)
-    {
-        $error = false;
-
-        if (!$file->isValid()) {
-            $error = $file->getError();
-        } elseif ($file->getSize() > $config['max_size']) {
-            $error = 'upload.ERROR_SIZE_EXCEED';
-        } elseif (!empty($config['allow_files']) &&
-            !in_array('.'.$file->getClientOriginalExtension(), $config['allow_files'])) {
-            $error = 'upload.ERROR_TYPE_NOT_ALLOWED';
-        }
-
-        return $error;
-    }
+	protected function fileHasError(UploadedFile $file, array $config)
+	{
+		$error = false;
+		
+		if (!$file->isValid()) {
+			$error = $file->getError();
+		} elseif ($file->getSize() > $config['max_size']) {
+			$error = 'upload.ERROR_SIZE_EXCEED';
+		} elseif (!empty($config['allow_files']) &&
+			!in_array('.'.$file->getClientOriginalExtension(), $config['allow_files'])) {
+			$error = 'upload.ERROR_TYPE_NOT_ALLOWED';
+		}
+		
+		return $error;
+	}
 	
 	/**
 	 * Get the new filename of file.
 	 * @param UploadedFile $file
 	 * @param array        $config
+	 * @param int|null     $user
 	 * @return array|string|string[]|null
 	 *
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:09
 	 */
-    protected function getFilename(UploadedFile $file, array $config)
-    {
-        $ext = '.'.$file->getClientOriginalExtension();
-
-        $filename = config('ueditor-plus.hash_filename') ? md5($file->getFilename()).$ext : $file->getClientOriginalName();
-
-        return $this->formatPath($config['path_format'], $filename);
-    }
+	protected function getFilename(UploadedFile $file, array $config, int $user=null)
+	{
+		$ext = '.'.$file->getClientOriginalExtension();
+		
+		$filename = config('ueditor-plus.hash_filename') ? md5($file->getFilename()).$ext : $file->getClientOriginalName();
+		
+		return $this->formatPath($config['path_format'], $filename, $user);
+	}
 	
 	/**
 	 * Get configuration of current action.
@@ -315,33 +324,33 @@ class StorageManager
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:09
 	 */
-    protected function getUploadConfig($action)
-    {
-        $upload = config('ueditor-plus.upload');
-
-        $prefixes = [
-            'image', 'scrawl', 'snapscreen', 'catcher', 'video', 'file',
-            'imageManager', 'fileManager',
-        ];
-
-        $config = [];
-
-        foreach ($prefixes as $prefix) {
-            if ($action == $upload[$prefix.'ActionName']) {
-                $config = [
-                    'action' => Arr::get($upload, $prefix.'ActionName'),
-                    'field_name' => Arr::get($upload, $prefix.'FieldName'),
-                    'max_size' => Arr::get($upload, $prefix.'MaxSize'),
-                    'allow_files' => Arr::get($upload, $prefix.'AllowFiles', []),
-                    'path_format' => Arr::get($upload, $prefix.'PathFormat'),
-                ];
-
-                break;
-            }
-        }
-
-        return $config;
-    }
+	protected function getUploadConfig($action)
+	{
+		$upload = config('ueditor-plus.upload');
+		
+		$prefixes = [
+			'image', 'scrawl', 'snapscreen', 'catcher', 'video', 'file',
+			'imageManager', 'fileManager',
+		];
+		
+		$config = [];
+		
+		foreach ($prefixes as $prefix) {
+			if ($action == $upload[$prefix.'ActionName']) {
+				$config = [
+					'action' => Arr::get($upload, $prefix.'ActionName'),
+					'field_name' => Arr::get($upload, $prefix.'FieldName'),
+					'max_size' => Arr::get($upload, $prefix.'MaxSize'),
+					'allow_files' => Arr::get($upload, $prefix.'AllowFiles', []),
+					'path_format' => Arr::get($upload, $prefix.'PathFormat'),
+				];
+				
+				break;
+			}
+		}
+		
+		return $config;
+	}
 	
 	/**
 	 * Make error response.
@@ -351,37 +360,43 @@ class StorageManager
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:09
 	 */
-    protected function error($message)
-    {
-        return response()->json(['state' => trans("ueditor-plus::upload.{$message}")]);
-    }
+	protected function error($message)
+	{
+		return response()->json(['state' => trans("ueditor-plus::upload.{$message}")]);
+	}
 	
 	/**
 	 * Format the storage path.
 	 * @param $path
 	 * @param $filename
+	 * @param $user
 	 * @return array|string|string[]|null
 	 *
 	 * @author: hongbinwang
 	 * @time  : 2023/2/13 16:10
 	 */
-    protected function formatPath($path, $filename)
-    {
-		$user = Auth::id()??0;
-        $replacement = array_merge(explode('-', date('Y-y-m-d-H-i-s')), [$filename, time(),$user]);
-        $placeholders = ['{yyyy}', '{yy}', '{mm}', '{dd}', '{hh}', '{ii}', '{ss}', '{filename}', '{time}', '{user}'];
-        $path = str_replace($placeholders, $replacement, $path);
-
-        //替换随机字符串
-        if (preg_match('/\{rand\:([\d]*)\}/i', $path, $matches)) {
-            $length = min($matches[1], strlen(PHP_INT_MAX));
-            $path = preg_replace('/\{rand\:[\d]*\}/i', str_pad(mt_rand(0, pow(10, $length) - 1), $length, '0', STR_PAD_LEFT), $path);
-        }
-
-        if (!str_contains($path, $filename)) {
-            $path = Str::finish($path, '/').$filename;
-        }
-
-        return $path;
-    }
+	protected function formatPath($path, $filename, $user)
+	{
+		if (!!$user) {
+			$replacement = array_merge(explode('-', date('Y-y-m-d-H-i-s')), [$filename, time(),$user]);
+			$placeholders = ['{yyyy}', '{yy}', '{mm}', '{dd}', '{hh}', '{ii}', '{ss}', '{filename}', '{time}', '{user}'];
+		} else {
+			$path = str_replace('/{user}','',$path);
+			$replacement = array_merge(explode('-', date('Y-y-m-d-H-i-s')), [$filename, time()]);
+			$placeholders = ['{yyyy}', '{yy}', '{mm}', '{dd}', '{hh}', '{ii}', '{ss}', '{filename}', '{time}'];
+		}
+		$path = str_replace($placeholders, $replacement, $path);
+		
+		//替换随机字符串
+		if (preg_match('/\{rand\:([\d]*)\}/i', $path, $matches)) {
+			$length = min($matches[1], strlen(PHP_INT_MAX));
+			$path = preg_replace('/\{rand\:[\d]*\}/i', str_pad(mt_rand(0, pow(10, $length) - 1), $length, '0', STR_PAD_LEFT), $path);
+		}
+		
+		if (!str_contains($path, $filename)) {
+			$path = Str::finish($path, '/').$filename;
+		}
+		
+		return $path;
+	}
 }

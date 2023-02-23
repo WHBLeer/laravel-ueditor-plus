@@ -12,6 +12,8 @@
 namespace Sanlilin\LaravelUEditorPlus;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controller;
 
 /**
@@ -23,7 +25,6 @@ class UEditorPlusController extends Controller
     {
         $upload = config('ueditor-plus.upload');
         $storage = app('ueditor-plus.storage');
-
         switch ($request->get('action')) {
             case 'config':
                 return config('ueditor-plus.upload');

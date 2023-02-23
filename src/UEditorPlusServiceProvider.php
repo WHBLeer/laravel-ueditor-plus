@@ -51,7 +51,7 @@ class UEditorPlusServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->mergeConfigFrom(__DIR__.'/config/ueditor-plus.php', 'ueditor');
+        $this->mergeConfigFrom(__DIR__.'/config/ueditor-plus.php', 'ueditor-plus');
         $this->app->singleton('ueditor-plus.storage', function ($app) {
             return new StorageManager(Storage::disk($app['config']->get('ueditor-plus.disk', 'public')));
         });
@@ -65,8 +65,8 @@ class UEditorPlusServiceProvider extends ServiceProvider
     protected function registerRoute($router)
     {
         if (!$this->app->routesAreCached()) {
-            $router->group(array_merge(['namespace' => __NAMESPACE__], config('ueditor-plus.route.options', [])), function ($router) {
-                $router->any(config('ueditor-plus.route.name', '/ueditor/server'), 'UEditorPlusController@serve');
+            $router->group(['namespace' => __NAMESPACE__], function ($router) {
+                $router->any(config('ueditor-plus.server_url', '/ueditor-plus/server'), 'UEditorPlusController@serve');
             });
         }
     }
