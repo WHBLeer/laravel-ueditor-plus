@@ -86,24 +86,6 @@ trait UrlResolverTrait
 	 */
     protected function getLocalUrl($path)
     {
-        $config = $this->disk->getDriver()->getConfig();
-
-        // If an explicit base URL has been set on the disk configuration then we will use
-        // it as the base URL instead of the default path. This allows the developer to
-        // have full control over the base path for this filesystem's generated URLs.
-        if ($config->has('url')) {
-            return rtrim($config->get('url'), '/').'/'.ltrim($path, '/');
-        }
-
-        $path = '/storage/'.ltrim($path, '/');
-
-        // If the path contains "storage/public", it probably means the developer is using
-        // the default disk to generate the path instead of the "public" disk like they
-        // are really supposed to use. We will remove the public from this path here.
-        if (Str::contains($path, '/storage/public/')) {
-            return Str::replaceFirst('/public/', '/', $path);
-        }
-
-        return $path;
+	    return asset($path);
     }
 }
