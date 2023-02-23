@@ -18,7 +18,7 @@ return [
             // middleware => 'auth',
         ],
     ],
-
+	'hash_filename' => true,
     // 上传 配置
     'upload' => [
         /* 前后端通信相关的配置,注释只允许使用多行方式 */
@@ -34,6 +34,7 @@ return [
         'imagePathFormat' => '/uploads/image/{yyyy}/{mm}/{dd}/', /* 上传保存路径,可以自定义保存路径和文件名格式 */
         /* {filename} 会替换成原文件名,配置这项需要注意中文乱码问题 */
         /* {rand:6} 会替换成随机数,后面的数字是随机数的位数 */
+	    /* {user} 会替换成当前登录用户id */
         /* {time} 会替换成时间戳 */
         /* {yyyy} 会替换成四位年份 */
         /* {yy} 会替换成两位年份 */

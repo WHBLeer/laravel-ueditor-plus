@@ -15,6 +15,7 @@ use SplFileInfo;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -366,8 +367,9 @@ class StorageManager
 	 */
     protected function formatPath($path, $filename)
     {
-        $replacement = array_merge(explode('-', date('Y-y-m-d-H-i-s')), [$filename, time()]);
-        $placeholders = ['{yyyy}', '{yy}', '{mm}', '{dd}', '{hh}', '{ii}', '{ss}', '{filename}', '{time}'];
+		$user = Auth::id()??0;
+        $replacement = array_merge(explode('-', date('Y-y-m-d-H-i-s')), [$filename, time(),$user]);
+        $placeholders = ['{yyyy}', '{yy}', '{mm}', '{dd}', '{hh}', '{ii}', '{ss}', '{filename}', '{time}', '{user}'];
         $path = str_replace($placeholders, $replacement, $path);
 
         //替换随机字符串
