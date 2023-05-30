@@ -106,7 +106,7 @@ class StorageManager
 				$request->get('user'),
 				end($path_arr),
 				$response['original'],
-				$filename,
+				ltrim($filename,'/'),
 				$response['size'],
 				$groups,
 				$response['mime_type'],
