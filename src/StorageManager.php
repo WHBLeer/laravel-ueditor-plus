@@ -102,7 +102,7 @@ class StorageManager
 
 			$path_arr  = explode('/',$filename);
 			$sha1  = md5(filesize($file).'+'.sha1_file($file));
-			MYDB::insert("INSERT INTO `{$config['insert_table']}` (user_id, name, org_name, path, size, category, mime_type, disk, sha1) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+			MYDB::insert("INSERT INTO `{$config['insert_table']}` (user_id, name, org_name, path, size, category, mime_type, disk, sha1) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [
 				$request->get('user'),
 				end($path_arr),
 				$response['original'],
@@ -375,7 +375,8 @@ class StorageManager
 				break;
 			}
 		}
-		
+
+		$config['insert_table'] = config('ueditor-plus.insert_table');
 		return $config;
 	}
 	
