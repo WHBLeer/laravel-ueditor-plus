@@ -15,6 +15,7 @@ use SplFileInfo;
 use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB as MYDB;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -86,8 +87,34 @@ class StorageManager
 			'original' => $file->getClientOriginalName(),
 			'type' => $file->getExtension(),
 			'size' => $file->getSize(),
+			'suffix'    => $file->getClientOriginalExtension(),
+			'mime_type' => $file->getMimeType()
 		];
-		
+		if (!!$config['insert_table']) {
+			$category  = explode('/',$response['mime_type'])[0];
+			if ($category==='image') {
+				$groups = 'picture';
+			} elseif ($category==='video') {
+				$groups = 'video';
+			} else {
+				$groups = 'other';
+			}
+
+			$path_arr  = explode('/',$filename);
+			$sha1  = md5(filesize($file).'+'.sha1_file($file));
+			MYDB::insert("INSERT INTO `{$config['insert_table']}` (user_id, name, org_name, path, size, category, mime_type, disk, sha1) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+				$request->get('user'),
+				end($path_arr),
+				$response['original'],
+				$filename,
+				$response['size'],
+				$groups,
+				$response['mime_type'],
+				env('FILESYSTEM_DRIVER'),
+				$sha1
+			]);
+
+		}
 		if ($this->eventSupport()) {
 			event(new Uploaded($file, $response));
 		}

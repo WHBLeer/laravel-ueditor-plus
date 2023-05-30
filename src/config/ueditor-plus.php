@@ -13,7 +13,8 @@ return [
     // 存储引擎: config/filesystem.php 中 disks， public 或 aws
 	'disk' => env('FILESYSTEM_DRIVER','public'),
 	's3_url' => env('AWS_DOMAIN',''),
-    'server_url' => '/ueditor-plus/server',
+	'server_url' => '/ueditor-plus/server',
+	'insert_table' => 'medias',
 	'hash_filename' => true,
     // 上传 配置
     'upload' => [
